@@ -1,0 +1,50 @@
+<%# Encode the arguments -%>
+<% arguments.each_with_index do |arg, j| -%>
+final <%= arg.type %> _arg<%= j %><%= JavaType.encode(:transact, :pre, arg, "_arg#{j}", _self) %>
+<% end -%>
+<%# Call the method -%>
+<% method_call = name + "(" + arguments.each_index.map {|j| "_arg#{j}" }.join(", ") + ")" -%>
+<% if modifiers.include?(:mainthread) %>
+final android.os.RemoteException[] _exception = {null};
+<% unless modifiers.include?(:oneway) %>
+final android.os.ConditionVariable _condition = new android.os.ConditionVariable();<% end %>
+<% unless ret.void? %>
+final <%= ret.type %>[] _resultArray = new <%= ret.type.sub(/(?=(?:\[\])*\z)/, '[1]') %>;<% end %>
+MainThread.INSTANCE.handler.post(new Runnable() {
+    @Override
+    public void run() {
+        try {
+            <% unless ret.void? %>_resultArray[0] = <% end %><%= method_call %>;
+        } catch (android.os.RemoteException _exc) {
+            _exception[0] = _exc;
+        }<% unless modifiers.include?(:oneway) %> finally {
+            _condition.open();
+        }<% end %>
+    }
+});
+<% unless modifiers.include?(:oneway) %>
+_condition.block();<% end %>
+if (_exception[0] != null) {
+    throw _exception[0];
+}
+<% unless ret.void? %>
+final <%= ret.type %> _result = _resultArray[0];<% end %>
+<% elsif modifiers.include?(:localthrow) %>
+<% unless ret.void? %>
+final <%= ret.type %> _result;<% end %>
+try {
+    <% unless ret.void? %>_result = <% end %><%= method_call %>;
+} catch (final NullPointerException _exc) {
+    _exc.printStackTrace();
+    throw new RuntimeException(_exc);
+}
+<% else %>
+<% unless ret.void? %>final <%= ret.type %> _result = <% end %><%= method_call %>;
+<% end %>
+<%# Transmit the arguments -%>
+<% unless modifiers.include?(:oneway) -%>
+reply.writeNoException();<% end %>
+<% unless ret.void? -%>
+<%= JavaType.encode(:transact, :post, ret, "_result", _self) %><% end %>
+<% arguments.each_with_index do |arg, j| -%>
+<%= JavaType.encode(:transact, :post, arg, "_arg#{j}", _self) %><% end -%>

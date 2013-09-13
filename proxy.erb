@@ -1,0 +1,19 @@
+<% is_oneway = modifiers.include?(:oneway) -%>
+final android.os.Parcel _data = android.os.Parcel.obtain();<% -%>
+<% unless is_oneway %>
+final android.os.Parcel _reply = android.os.Parcel.obtain();
+<% end -%>
+try {
+    _data.writeInterfaceToken(DESCRIPTOR);<% arguments.each do |arg| %>
+    <%= JavaType.encode(:proxy, :pre, arg, arg.name, _self).indent(4) %><% end %>
+    mRemote.transact(FIRST_CALL_TRANSACTION + <%= i %>, _data, <% if is_oneway %>null, FLAG_ONEWAY<% else %>_reply, 0<% end %>);
+    <% unless is_oneway %>_reply.readException();<% end %>
+    <% unless ret.void? %>
+    final <%= ret.type %> _result<%= JavaType.encode(:proxy, :post, ret, "_result", _self).indent(4) %><% end %>
+    <% arguments.each do |arg| %><%= JavaType.encode(:proxy, :post, arg, arg.name, _self).indent(4) %>
+    <% end %>
+    <% unless ret.void? %>return _result;<% end %>
+} finally {
+    _data.recycle();<% unless is_oneway %>
+    _reply.recycle();<% end %>
+}

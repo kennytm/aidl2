@@ -1,0 +1,3 @@
+public <%= ret.type %> <%= name -%>
+(<%= arguments.map {|arg| "final #{arg.type} #{arg.name}" }.join(', ') -%>
+) throws android.os.RemoteException<% -%>
