@@ -1,0 +1,7 @@
+package hihex.aidl2sample;
+
+interface ISampleService2 {
+    void derefNullInClient(in int[] nullArray);
+    
+    localthrow void derefNullInServer(in int[] nullArray);
+}

@@ -1,0 +1,5 @@
+package hihex.aidl2sample;
+
+interface ISampleClient1 {
+    int computeResult(int x, int y);
+}

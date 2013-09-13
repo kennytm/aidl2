@@ -1,0 +1,25 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="hihex.aidl2sample" android:versionCode="1" android:versionName="1.0" >
+    <uses-sdk android:minSdkVersion="8" android:targetSdkVersion="18" />
+
+    <application android:allowBackup="true" android:icon="@drawable/ic_launcher" android:label="AIDL2 Sample">
+        <activity android:name="SampleActivity" android:label="Sample AIDL2 activity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        
+        <service android:name="SampleService1" android:process=":service1" android:exported="false">
+            <intent-filter>
+                <action android:name="hihex.aidl2sample.SampleService1"/>
+            </intent-filter>
+        </service>
+
+        <service android:name="SampleService2" android:process=":service2" android:exported="false">
+            <intent-filter>
+                <action android:name="hihex.aidl2sample.SampleService2"/>
+            </intent-filter>
+        </service>
+    </application>
+</manifest>

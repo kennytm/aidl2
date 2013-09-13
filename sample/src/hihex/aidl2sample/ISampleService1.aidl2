@@ -1,0 +1,47 @@
+package hihex.aidl2sample;
+
+import android.util.SparseBooleanArray;
+import android.graphics.Point;
+import java.util.List;
+
+serializable CustomSerializable;
+
+parcelable CustomParcelable.InnerParcelable;
+
+interface ISampleService1 {
+    /** Just a simple method to get started. */
+    int simpleSendReceive(int x, int y);
+    
+    /** We could overload functions. */
+    float simpleSendReceive(float x, float y);
+    
+    /** We could send sparse boolean arrays. */
+    int sumKeys(in SparseBooleanArray arr);
+   
+    /** We could ensure some methods are run in the main thread in the server. */
+    oneway mainthread void storeValuesInMainThread(in int[] array);
+    
+    /** These methods can be run synchronously. */
+    mainthread int[] extractValuesInMainThread(out int[] count);
+    
+    /** AIDL2 automatically recognizes most parcelable types. */
+    void swapXy(inout CustomParcelable cp, inout Point point);
+    
+    /** We can send custom AIDL2 interfaces, even in a list. */
+    int[] computeResults(in List<ISampleClient1> clients);
+    
+    /** We could also write interfaces to a list. */
+    void populateClients(out List<ISampleClient1> clients);
+    
+    /**
+     * We could send and receive Serializables. But notice that Serializable is extremely slow, and Parcelable is still
+     * preferred. You need to explicitly tell the compiler that a type is serializable.
+     */
+    CustomSerializable combineSerializables(in java.util.ArrayList<CustomSerializable> css);
+    
+    /**
+     * AIDL2 is not a Java parser, thus cannot determine what is the kind of some complex data type. You can still
+     * explicitly mark a type as a Parcelable or Serializable.
+     */
+    CustomParcelable.InnerParcelable createInnerParcelable(float foo);
+}
