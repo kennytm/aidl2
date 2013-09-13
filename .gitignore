@@ -1,5 +1,7 @@
-*_aidl2.rb
+build_aidl2.rb
+*.rl.rb
+*.tmp.rb
 *.swp
 *.swo
 .DS_Store
-
+doc
