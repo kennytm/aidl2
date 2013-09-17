@@ -1,4 +1,5 @@
 build_aidl2.rb
+build_aidl2_z.rb
 *.rl.rb
 *.tmp.rb
 *.swp
