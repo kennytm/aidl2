@@ -76,7 +76,7 @@ def filter_aidl2(filenames, prefix)
             Pathname.new(File.join(parts))
         elsif rel_path.fnmatch?("..*")
             nil
-        else
+        elsif rel_path.fnmatch?("*.aidl2", File::FNM_CASEFOLD)
             rel_path
         end
     end
