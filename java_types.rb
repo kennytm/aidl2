@@ -380,6 +380,34 @@ end
 
 
 ##
+# Handle UUID types.
+class UUIDJavaType < JavaType # :nodoc:
+    register_java_type(/\A(?:java\.util\.)?UUID\z/)
+
+    def create_from_parcel(parcel, name)
+        ";
+        if (#{parcel}.readInt() != 0) {
+            final long _msb_#{name} = #{parcel}.readLong();
+            final long _lsb_#{name} = #{parcel}.readLong();
+            #{name} = new java.util.UUID(_msb_#{name}, _lsb_#{name});
+        } else {
+            #{name} = null;
+        }".dedent(8)
+    end
+
+    def write_to_parcel(parcel, name)
+        "if (#{name} != null) {
+            #{parcel}.writeInt(1);
+            #{parcel}.writeLong(#{name}.getMostSignificantBits());
+            #{parcel}.writeLong(#{name}.getLeastSignificantBits());
+        } else {
+            #{parcel}.writeInt(0);
+        }".dedent(8)
+    end
+end
+
+
+##
 # Handles generic arrays (`T[]`).
 class GenericArrayJavaType < JavaType # :nodoc:
     register_java_type(/\[\]\z/)
