@@ -66,6 +66,12 @@ end
 
 task :default => ["sample/build_aidl2.rb", "build_aidl2.rb"]
 
+file "build_aidl2_z.rb" => "build_aidl2.rb" do |t|
+    ruby "create_compressed_source.rb"
+end
+
+task :compress => ["build_aidl2_z.rb"]
+
 CLEAN.include(["*.rl.rb", "*.tmp.rb"])
 CLOBBER.include("build_aidl2.rb")
 
