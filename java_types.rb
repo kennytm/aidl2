@@ -408,6 +408,21 @@ end
 
 
 ##
+# Handle Parcelable types.
+class ParcelableJavaType < JavaType # :nodoc:
+    register_java_type(/\A(?:android\.os\.)?Parcelable\z/)
+
+    def create_from_parcel(parcel, name)
+        " = #{parcel}.readParcelable(getClass().getClassLoader());"
+    end
+
+    def write_to_parcel(parcel, name)
+        "#{parcel}.writeParcelable(#{name}, #{get_parcelable_flag(parcel)});"
+    end
+end
+
+
+##
 # Handles generic arrays (`T[]`).
 class GenericArrayJavaType < JavaType # :nodoc:
     register_java_type(/\[\]\z/)
