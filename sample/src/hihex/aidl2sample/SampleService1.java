@@ -2,6 +2,7 @@ package hihex.aidl2sample;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import android.app.Service;
 import android.content.Intent;
@@ -112,6 +113,18 @@ public final class SampleService1 extends Service {
         @Override
         public CustomParcelable.InnerParcelable createInnerParcelable(final float foo) throws RemoteException {
             return new CustomParcelable.InnerParcelable(foo);
+        }
+
+        @Override
+        public UUID exchangeUUIDs(final UUID uuid, final UUID[] uuids) throws RemoteException {
+            if (uuids[2] != null) {
+                throw new RuntimeException("Wrong UUID");
+            }
+            final UUID retval = uuids[0];
+            uuids[2] = uuids[1];
+            uuids[1] = uuid;
+            uuids[0] = null;
+            return retval;
         }
     };
 

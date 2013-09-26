@@ -3,6 +3,7 @@ package hihex.aidl2sample;
 import android.util.SparseBooleanArray;
 import android.graphics.Point;
 import java.util.List;
+import java.util.UUID;
 
 serializable CustomSerializable;
 
@@ -44,4 +45,7 @@ interface ISampleService1 {
      * explicitly mark a type as a Parcelable or Serializable.
      */
     CustomParcelable.InnerParcelable createInnerParcelable(float foo);
+    
+    /** We can send and receive UUIDs. */
+    UUID exchangeUUIDs(in UUID uuid, inout UUID[] uuids);
 }

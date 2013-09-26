@@ -481,6 +481,97 @@ end
 
 
 ##
+# Handles array of UUID.
+class UUIDArrayJavaType < GenericArrayJavaType # :nodoc:
+    register_java_type(/(?:java\.util\.)?UUID\[\]\z/)
+
+    def create_from_parcel(parcel, name)
+        ";
+        final long[] _longs_#{name} = #{parcel}.createLongArray();
+        if (_longs_#{name} == null) {
+            #{name} = null;
+        } else {
+            final int _hasNullUuid_#{name} = #{parcel}.readInt();
+            long _nullUuidMsb_#{name} = 0;
+            long _nullUuidLsb_#{name} = 0;
+            if (_hasNullUuid_#{name} != 0) {
+                _nullUuidMsb_#{name} = #{parcel}.readLong();
+                _nullUuidLsb_#{name} = #{parcel}.readLong();
+            }
+            final int _length_#{name} = _longs_#{name}.length / 2;
+            #{name} = new java.util.UUID[_length_#{name}];
+            for (int _i_#{name} = 0, _j_#{name} = 0; _i_#{name} < _length_#{name}; ++ _i_#{name}) {
+                final long _msb_#{name} = _longs_#{name}[_j_#{name}++];
+                final long _lsb_#{name} = _longs_#{name}[_j_#{name}++];
+                if (_hasNullUuid_#{name} != 0) {
+                    if (_msb_#{name} == _nullUuidMsb_#{name} && _lsb_#{name} == _nullUuidLsb_#{name}) {
+                        #{name}[_i_#{name}] = null;
+                        continue;
+                    }
+                }
+                #{name}[_i_#{name}] = new java.util.UUID(_msb_#{name}, _lsb_#{name});
+            }
+        }".dedent(8)
+    end
+
+    def write_to_parcel(parcel, name)
+        "if (#{name} == null) {
+            #{parcel}.writeLongArray(null);
+        } else {
+            final long[] _writeLongs_#{name} = new long[#{name}.length*2];
+            java.util.UUID _nullUuid_#{name} = null;
+            int _i_#{name} = 0;
+            for (java.util.UUID _uuid_#{name} : #{name}) {
+                if (_uuid_#{name} == null) {
+                    if (_nullUuid_#{name} == null) {
+                        do {
+                            _nullUuid_#{name} = java.util.UUID.randomUUID();
+                        } while (java.util.Arrays.asList(#{name}).contains(_nullUuid_#{name}));
+                    }
+                    _uuid_#{name} = _nullUuid_#{name};
+                }
+                _writeLongs_#{name}[_i_#{name}++] = _uuid_#{name}.getMostSignificantBits();
+                _writeLongs_#{name}[_i_#{name}++] = _uuid_#{name}.getLeastSignificantBits();
+            }
+            #{parcel}.writeLongArray(_writeLongs_#{name});
+            if (_nullUuid_#{name} != null) {
+                #{parcel}.writeInt(1);
+                #{parcel}.writeLong(_nullUuid_#{name}.getMostSignificantBits());
+                #{parcel}.writeLong(_nullUuid_#{name}.getLeastSignificantBits());
+            } else {
+                #{parcel}.writeInt(0);
+            }
+        }".dedent(8)
+    end
+
+    def read_from_parcel(parcel, name)
+        "final long[] _longs_#{name} = #{parcel}.createLongArray();
+        if (_longs_#{name} != null) {
+            final int _hasNullUuid_#{name} = #{parcel}.readInt();
+            long _nullUuidMsb_#{name} = 0;
+            long _nullUuidLsb_#{name} = 0;
+            if (_hasNullUuid_#{name} != 0) {
+                _nullUuidMsb_#{name} = #{parcel}.readLong();
+                _nullUuidLsb_#{name} = #{parcel}.readLong();
+            }
+            final int _length_#{name} = Math.min(#{name}.length, _longs_#{name}.length / 2);
+            for (int _i_#{name} = 0, _j_#{name} = 0; _i_#{name} < _length_#{name}; ++ _i_#{name}) {
+                final long _msb_#{name} = _longs_#{name}[_j_#{name}++];
+                final long _lsb_#{name} = _longs_#{name}[_j_#{name}++];
+                if (_hasNullUuid_#{name} != 0) {
+                    if (_msb_#{name} == _nullUuidMsb_#{name} && _lsb_#{name} == _nullUuidLsb_#{name}) {
+                        #{name}[_i_#{name}] = null;
+                        continue;
+                    }
+                }
+                #{name}[_i_#{name}] = new java.util.UUID(_msb_#{name}, _lsb_#{name});
+            }
+        }".dedent(8)
+    end
+end
+
+
+##
 # Handles primitive arrays (`int[]`, `char[]`, `String[]`, etc.).
 class PrimitiveArrayJavaType < GenericArrayJavaType # :nodoc:
     register_java_type(/\A(?:

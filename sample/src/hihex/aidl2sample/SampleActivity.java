@@ -3,6 +3,7 @@ package hihex.aidl2sample;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import android.app.Activity;
 import android.content.ComponentName;
@@ -202,6 +203,22 @@ public final class SampleActivity extends Activity implements ServiceConnection 
             public boolean run() throws RemoteException {
                 final CustomParcelable.InnerParcelable ip = mSampleService1.createInnerParcelable(5.5f);
                 return ip.z == 5.5f;
+            }
+        });
+
+        mTestResultAdapter.addTestCase(new Predicate() {
+            @Override
+            public boolean run() throws RemoteException {
+                final UUID a = UUID.randomUUID();
+                final UUID b = new UUID(0, 0);
+                final UUID c = new UUID(-1L, -1L);
+
+                final UUID[] arr = {a, b, null};
+                final UUID ret = mSampleService1.exchangeUUIDs(c, arr);
+
+                final UUID ret2 = mSampleService1.exchangeUUIDs(null, new UUID[] {null, null, null, null});
+
+                return ret2 == null && a.equals(ret) && Arrays.equals(arr, new UUID[] {null, c, b});
             }
         });
     }
