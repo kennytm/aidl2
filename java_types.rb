@@ -137,6 +137,12 @@ def get_parcelable_flag(parcel)
     end
 end
 
+##
+# Remove the generics part of the type name.
+def remove_generics(typename)
+    typename[/\A[^<]*/]
+end
+
 #}}}
 
 ##
@@ -278,9 +284,10 @@ class GenericJavaType < JavaType # :nodoc:
 
     def initialize(arg, writer)
         super(arg, writer)
-        @interface_class = get_interface_class(@arg.type, @writer.prefix,
+        raw_type = remove_generics(@arg.type)
+        @interface_class = get_interface_class(raw_type, @writer.prefix,
                                                @writer.package, @writer.imports)
-        @creator = get_creator_var(@arg.type)
+        @creator = get_creator_var(raw_type)
     end
 
     def create_from_parcel(parcel, name)
@@ -293,7 +300,7 @@ class GenericJavaType < JavaType # :nodoc:
                 #{name} = null;
             }".dedent(12)
         when :interface
-            " = #{@arg.type}.Stub.asInterface(#{parcel}.readStrongBinder());"
+            " = #{remove_generics(@arg.type)}.Stub.asInterface(#{parcel}.readStrongBinder());"
         when :serializable
             " = (#{@arg.type}) #{parcel}.readSerializable();"
         end
@@ -442,7 +449,7 @@ class GenericArrayJavaType < JavaType # :nodoc:
 
     def initialize(arg, writer)
         super(arg, writer)
-        @creator = get_creator_var(@arg.type[0...-2])
+        @creator = get_creator_var(remove_generics(@arg.type[0...-2]))
     end
 
     def create_from_parcel(parcel, name)
