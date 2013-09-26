@@ -379,6 +379,19 @@ class IntLikeJavaType < JavaType # :nodoc:
 end
 
 
+class BooleanJavaType < JavaType # :nodoc:
+    register_java_type(/\Aboolean\z/)
+
+    def create_from_parcel(parcel, name)
+        " = (#{parcel}.readInt() != 0);"
+    end
+
+    def write_to_parcel(parcel, name)
+        "#{parcel}.writeInt(#{name} ? 1 : 0);"
+    end
+end
+
+
 ##
 # Handle UUID types.
 class UUIDJavaType < JavaType # :nodoc:
