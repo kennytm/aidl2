@@ -616,15 +616,16 @@ class GenericListJavaType < JavaType # :nodoc:
         super(arg, writer)
         /<(.+)>\z/ =~ @arg.type
         @content_type = $1
-        @interface_class = get_interface_class(@content_type, @writer.prefix,
+        raw_content_type = remove_generics(@content_type)
+        @interface_class = get_interface_class(raw_content_type, @writer.prefix,
                                                @writer.package, @writer.imports)
-        @creator = get_creator_var(@content_type)
+        @creator = get_creator_var(raw_content_type)
     end
 
     def create_from_parcel(parcel, name)
         case @interface_class
         when :parcelable
-            " = #{parcel}.createTypedArrayList(#{@creator})"
+            " = #{parcel}.createTypedArrayList(#{@creator});"
         when :interface
             ";
             final java.util.ArrayList<android.os.IBinder> _binderProxies_#{name} = #{parcel}.createBinderArrayList();
@@ -632,7 +633,7 @@ class GenericListJavaType < JavaType # :nodoc:
                 final int _size_#{name} = _binderProxies_#{name}.size();
                 #{name}#{create_buffer(parcel, name)[0...-3]}(_size_#{name});
                 for (final android.os.IBinder _binder_#{name} : _binderProxies_#{name}) {
-                    #{name}.add(#{@content_type}.Stub.asInterface(_binder_#{name}));
+                    #{name}.add(#{remove_generics(@content_type)}.Stub.asInterface(_binder_#{name}));
                 }
             } else {
                 #{name} = null;
@@ -654,7 +655,7 @@ class GenericListJavaType < JavaType # :nodoc:
     def write_to_parcel(parcel, name)
         case @interface_class
         when :parcelable
-            "#{parcel}.writeTypedArrayList(#{name});"
+            "#{parcel}.writeTypedList(#{name});"
         when :interface
             "final int _writeSize_#{name} = #{name}.size();
             final java.util.ArrayList<android.os.IBinder> _realBinders_#{name} = new java.util.ArrayList<android.os.IBinder>(_writeSize_#{name});
@@ -683,7 +684,7 @@ class GenericListJavaType < JavaType # :nodoc:
             if (_binderProxies_#{name} != null) {
                 #{name}.clear();
                 for (final android.os.IBinder _binder_#{name} : _binderProxies_#{name}) {
-                    #{name}.add(#{@content_type}.Stub.asInterface(_binder_#{name}));
+                    #{name}.add(#{remove_generics(@content_type)}.Stub.asInterface(_binder_#{name}));
                 }
             }".dedent(12)
         when :serializable
