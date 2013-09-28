@@ -470,6 +470,21 @@ end
 
 
 ##
+# Handle Object types.
+class ObjectJavaType < JavaType # :nodoc:
+    register_java_type(/\A(?:java\.lang\.)?Object\z/)
+
+    def create_from_parcel(parcel, name)
+        " = (#{@arg.type}) #{parcel}.readValue(getClass().getClassLoader());"
+    end
+
+    def write_to_parcel(parcel, name)
+        "#{parcel}.writeValue(#{name});"
+    end
+end
+
+
+##
 # Handles generic arrays (`T[]`).
 class GenericArrayJavaType < JavaType # :nodoc:
     register_java_type(/\[\]\z/)
