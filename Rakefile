@@ -51,7 +51,8 @@ EOF
     end
 end
 
-file "build_aidl2.rb" => %w(inlined_files.tmp.rb lexer.rl.rb parser.rl.rb
+file "build_aidl2.rb" => %w(inlined_files.tmp.rb
+                            lexer.rl.rb parser.rl.rb generic.rl.rb
                             java_types.rb java_writer.rb main.rb) do |t|
     File.open(t.name, "w", 0755) do |f|
         t.prerequisites.each do |fn|

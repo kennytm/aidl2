@@ -32,6 +32,7 @@ end
 
 require_unless_inlined "lexer.rl"
 require_unless_inlined "parser.rl"
+require_unless_inlined "generic.rl"
 require_unless_inlined "java_types"
 require_unless_inlined "java_writer"
 

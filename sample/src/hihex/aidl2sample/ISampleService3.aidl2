@@ -1,0 +1,12 @@
+package hihex.aidl2sample;
+
+import android.os.Parcelable;
+
+interface ISampleService3<T extends Parcelable> {
+    /**
+     * AIDL2 supports simple generic interface. Currently only parameters of the form 
+     * {@code <T extends Parcelable, ...>}, and using T directly can be properly compiled. We will extend this in the
+     * future if proved useful. 
+     */ 
+    T passthrough(T data);
+}

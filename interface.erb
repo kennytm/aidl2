@@ -10,17 +10,17 @@ import <%= qname %>;
 <% end -%>
 
 <%= javadoc %>
-public interface <%= name %> extends android.os.IInterface {
+public interface <%= name %><%= generic %> extends android.os.IInterface {
     <% methods.each do |method| -%>
     <%= method.javadoc %>
     <%= METHOD_SIGNATURE_ERB.result_of(method, _self) %>;
     <% end -%>
 
     /** Local-side IPC implementation stub class. */
-    public static abstract class Stub extends android.os.Binder implements <%= name %> {
+    public static abstract class Stub<%= generic %> extends android.os.Binder implements <%= name %><%= _self.generic_arguments %> {
         /*internal*/static final String DESCRIPTOR = "<%= package %>.<%= name %>";
 
-        @SuppressWarnings("unused")
+        <% if methods.any? {|m| m.modifiers.include?(:mainthread) } %>
         private static enum MainThread {
             INSTANCE(0);
 
@@ -30,22 +30,31 @@ public interface <%= name %> extends android.os.IInterface {
                 handler = new android.os.Handler(android.os.Looper.getMainLooper());
             }
         }
+        <% end %>
 
         /** Construct the stub at attach it to the interface. */
         public Stub() {
             attachInterface(this, DESCRIPTOR);
         }
 
-        /** Cast an IBinder object into an <%= name %> interface, generating a proxy if needed. */
-        public static <%= name %> asInterface(final android.os.IBinder obj) {
+        /**
+         * Cast an IBinder object into an <%= name %> interface, generating a proxy if needed.<% if generic %>
+         *
+         * <p>Note that this method will not check if the converted interface really use the provided generic arguments.
+         * Passing the wrong types will cause ClassCastException in the server in random places. Please check the
+         * interface documentation for what arguments are expected.
+         */
+        @SuppressWarnings("unchecked")<% else %>
+         */<% end %>
+        public static <%= generic %> <%= name %><%= _self.generic_arguments %> asInterface(final android.os.IBinder obj) {
             if (obj == null) {
                 return null;
             }
             android.os.IInterface iin = obj.queryLocalInterface(DESCRIPTOR);
             if (iin instanceof <%= name %>) {
-                return (<%= name %>) iin;
+                return (<%= name %><%= _self.generic_arguments %>) iin;
             } else {
-                return new Proxy(obj);
+                return new Proxy<%= _self.generic_arguments %>(obj);
             }
         }
 
@@ -75,7 +84,7 @@ public interface <%= name %> extends android.os.IInterface {
             }
         }
 
-        private static final class Proxy implements <%= name %> {
+        private static final class Proxy<%= generic %> implements <%= name %><%= _self.generic_arguments %> {
             private final android.os.IBinder mRemote;
 
             /*internal*/Proxy(final android.os.IBinder remote) {

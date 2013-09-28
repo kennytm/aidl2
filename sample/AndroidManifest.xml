@@ -21,5 +21,11 @@
                 <action android:name="hihex.aidl2sample.SampleService2"/>
             </intent-filter>
         </service>
+        
+        <service android:name="SampleService3" android:process=":service3" android:exported="false">
+            <intent-filter>
+                <action android:name="hihex.aidl2sample.SampleService3"/>
+            </intent-filter>
+        </service>
     </application>
 </manifest>

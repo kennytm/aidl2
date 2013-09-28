@@ -20,6 +20,7 @@ import android.widget.GridView;
 public final class SampleActivity extends Activity implements ServiceConnection {
     private ISampleService1 mSampleService1;
     private ISampleService2 mSampleService2;
+    private ISampleService3<CustomParcelable> mSampleService3;
     private TestResultAdapter mTestResultAdapter;
 
     @Override
@@ -40,6 +41,8 @@ public final class SampleActivity extends Activity implements ServiceConnection 
         bindService(service1Intent, this, Context.BIND_AUTO_CREATE);
         final Intent service2Intent = new Intent("hihex.aidl2sample.SampleService2");
         bindService(service2Intent, this, Context.BIND_AUTO_CREATE);
+        final Intent service3Intent = new Intent("hihex.aidl2sample.SampleService3");
+        bindService(service3Intent, this, Context.BIND_AUTO_CREATE);
     }
 
     @Override
@@ -59,6 +62,9 @@ public final class SampleActivity extends Activity implements ServiceConnection 
         } else if (className.equals("hihex.aidl2sample.SampleService2")) {
             mSampleService2 = ISampleService2.Stub.asInterface(service);
             addTestCasesForSampleService2();
+        } else if (className.equals("hihex.aidl2sample.SampleService3")) {
+            mSampleService3 = ISampleService3.Stub.asInterface(service);
+            addTestCasesForSampleService3();
         }
         mTestResultAdapter.runPredicates();
     }
@@ -70,6 +76,8 @@ public final class SampleActivity extends Activity implements ServiceConnection 
             mSampleService1 = null;
         } else if (className.equals("hihex.aidl2sample.SampleService2")) {
             mSampleService2 = null;
+        } else if (className.equals("hihex.aidl2sample.SampleService3")) {
+            mSampleService3 = null;
         }
     }
 
@@ -251,6 +259,19 @@ public final class SampleActivity extends Activity implements ServiceConnection 
             public boolean run() throws RemoteException {
                 mSampleService2.derefNullInServer(null);
                 return true;
+            }
+        });
+    }
+
+    private void addTestCasesForSampleService3() {
+        mTestResultAdapter.addTestCase(new Predicate() {
+            @Override
+            public boolean run() throws RemoteException {
+                final CustomParcelable cp1 = new CustomParcelable();
+                cp1.x = 5;
+                cp1.y = 7;
+                final CustomParcelable cp2 = mSampleService3.passthrough(cp1);
+                return cp2.x == 6 && cp2.y == 8;
             }
         });
     }

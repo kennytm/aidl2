@@ -48,7 +48,7 @@ end
 ##
 # A class which converts an AIDL2Interface into Java code.
 class JavaWriter
-    attr_reader :prefix
+    attr_reader :prefix, :generic, :generic_arguments
 
     METHOD_SIGNATURE_ERB = ERB.import("method_signature.erb")
     TRANSACTION_ERB = ERB.import("transaction.erb")
@@ -58,6 +58,13 @@ class JavaWriter
     def initialize(interface, prefix)
         @interface = interface
         @prefix = prefix
+        if interface.generic.nil?
+            @generic = []
+            @generic_arguments = ""
+        else
+            @generic = GenericParser.parse(interface.generic)
+            @generic_arguments = "<#{@generic.map(&:name).join(', ')}>"
+        end
     end
 
     def encode_interface

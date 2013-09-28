@@ -111,10 +111,10 @@ end
 
 ##
 # Check if a type is Parcelable, Serializable or an IInterface.
-def get_interface_class(typename, prefix, package, imports)
+def get_interface_class(typename, writer)
     fq_typename = typename
     check_typename = "." << typename
-    imports.each do |type, qname|
+    writer.imports.each do |type, qname|
         if qname == typename || qname.end_with?(check_typename)
             fq_typename = qname
             if type != :import
@@ -127,7 +127,7 @@ def get_interface_class(typename, prefix, package, imports)
 
     if PARCELABLE_TYPES.include?(fq_typename)
         :parcelable
-    elsif typename_to_path(fq_typename, prefix, package).exist?
+    elsif typename_to_path(fq_typename, writer.prefix, writer.package).exist?
         :parcelable
     else
         :interface
@@ -214,9 +214,16 @@ class JavaType
     public
     def self.encode(transact_proxy, pre_post, arg, name, writer)
         if arg.java_type.nil?
+            the_type = arg.type
+            writer.generic.each do |gp|
+                if arg.type == gp.name
+                    the_type = gp.extends[0] || 'java.lang.Object'
+                    break
+                end
+            end
             REGISTRY.reverse_each do |regex, cls|
-                if regex =~ arg.type
-                    arg.java_type = cls.new(arg, writer)
+                if regex =~ the_type
+                    arg.java_type = cls.new(arg, the_type, writer)
                     break
                 end
             end
@@ -225,8 +232,9 @@ class JavaType
     end
 
     private
-    def initialize(arg, writer)
+    def initialize(arg, repr_type, writer)
         @arg = arg
+        @repr_type = repr_type
         @tokens = writer.tokens
         @writer = writer
     end
@@ -301,11 +309,10 @@ end
 class GenericJavaType < JavaType # :nodoc:
     register_java_type(/\A/)
 
-    def initialize(arg, writer)
-        super(arg, writer)
-        raw_type = remove_generics(@arg.type)
-        @interface_class = get_interface_class(raw_type, @writer.prefix,
-                                               @writer.package, @writer.imports)
+    def initialize(arg, repr_type, writer)
+        super(arg, repr_type, writer)
+        raw_type = remove_generics(repr_type)
+        @interface_class = get_interface_class(raw_type, @writer)
         @creator = get_creator_var(raw_type)
     end
 
@@ -319,7 +326,7 @@ class GenericJavaType < JavaType # :nodoc:
                 #{name} = null;
             }".dedent(12)
         when :interface
-            " = #{remove_generics(@arg.type)}.Stub.asInterface(#{parcel}.readStrongBinder());"
+            " = #{remove_generics(@repr_type)}.Stub.asInterface(#{parcel}.readStrongBinder());"
         when :serializable
             " = (#{@arg.type}) #{parcel}.readSerializable();"
         end
@@ -355,7 +362,7 @@ class GenericJavaType < JavaType # :nodoc:
     def create_buffer(parcel, name)
         case @interface_class
         when :parcelable, :serializable
-            " = new #{@arg.type}();"
+            " = new #{@repr_type}();"
         else
             do_raise
         end
@@ -374,9 +381,9 @@ class PrimitiveJavaType < JavaType # :nodoc:
         (?:android\.os\.)?IBinder
     )\z/x)
 
-    def initialize(arg, writer)
-        super(arg, writer)
-        @method_name = arg.type[/[^.]+\z/].capitalize
+    def initialize(arg, repr_type, writer)
+        super(arg, repr_type, writer)
+        @method_name = repr_type[/[^.]+\z/].capitalize
         @method_name = "StrongBinder" if @method_name == "Ibinder"
     end
 
@@ -467,9 +474,9 @@ end
 class GenericArrayJavaType < JavaType # :nodoc:
     register_java_type(/\[\]\z/)
 
-    def initialize(arg, writer)
-        super(arg, writer)
-        @creator = get_creator_var(remove_generics(@arg.type[0...-2]))
+    def initialize(arg, repr_type, writer)
+        super(arg, repr_type, writer)
+        @creator = get_creator_var(remove_generics(repr_type[0...-2]))
     end
 
     def create_from_parcel(parcel, name)
@@ -493,7 +500,7 @@ class GenericArrayJavaType < JavaType # :nodoc:
         ";
         final int #{gi:length} = #{parcel}.readInt();
         if (#{gi:length} >= 0) {
-            #{name} = new #{@arg.type[0...-2]}[#{gi:length}];
+            #{name} = new #{@repr_type[0...-2]}[#{gi:length}];
         } else {
             #{name} = null;
         }".dedent(8)
@@ -598,9 +605,9 @@ class PrimitiveArrayJavaType < GenericArrayJavaType # :nodoc:
         (?:android\.os\.)?IBinder
     )\[\]\z/x)
 
-    def initialize(arg, writer)
-        super(arg, writer)
-        @method_name = arg.type[/[^.\[]+(?=\[)/].capitalize
+    def initialize(arg, repr_type, writer)
+        super(arg, repr_type, writer)
+        @method_name = repr_type[/[^.\[]+(?=\[)/].capitalize
         @method_name = "Binder" if @method_name == "Ibinder"
     end
 
@@ -620,7 +627,7 @@ end
 
 module CreateArrayListMixin
     def create_buffer(parcel, name)
-        " = new #{@arg.type.sub(/\A(?:java\.util\.)?List/, "java.util.ArrayList")}();"
+        " = new #{@repr_type.sub(/\A(?:java\.util\.)?List/, "java.util.ArrayList")}();"
     end
 end
 
@@ -630,13 +637,12 @@ end
 class GenericListJavaType < JavaType # :nodoc:
     register_java_type(/\A(?:java\.util\.)?(?:Array)?List<.+>\z/m)
 
-    def initialize(arg, writer)
-        super(arg, writer)
-        /<(.+)>\z/ =~ @arg.type
+    def initialize(arg, repr_type, writer)
+        super(arg, repr_type, writer)
+        /<(.+)>\z/ =~ repr_type
         @content_type = $1
         raw_content_type = remove_generics(@content_type)
-        @interface_class = get_interface_class(raw_content_type, @writer.prefix,
-                                               @writer.package, @writer.imports)
+        @interface_class = get_interface_class(raw_content_type, @writer)
         @creator = get_creator_var(raw_content_type)
     end
 
@@ -735,9 +741,9 @@ class PrimitiveListJavaType < JavaType # :nodoc:
         )\s*>\z
     /x)
 
-    def initialize(arg, writer)
-        super(arg, writer)
-        @method_name = @arg.type[/[^.<\s]+(?=\s*>)/]
+    def initialize(arg, repr_type, writer)
+        super(arg, repr_type, writer)
+        @method_name = repr_type[/[^.<\s]+(?=\s*>)/]
         @method_name = "Binder" if @method_name == "IBinder"
     end
 
@@ -806,9 +812,9 @@ end
 class UntypedCollectionJavaType < JavaType # :nodoc:
     register_java_type(/\A(?:java\.util\.)?(?:(?:Array)?List|(?:Hash)?Map)\z/x)
 
-    def initialize(arg, writer)
-        super(arg, writer)
-        if @arg.type.include?("List")
+    def initialize(arg, repr_type, writer)
+        super(arg, repr_type, writer)
+        if repr_type.include?("List")
             @method_names = ["List", "ArrayList"]
         else
             @method_names = ["Map", "HashMap"]

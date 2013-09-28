@@ -8,8 +8,8 @@ end
 
 AIDL2Method = Struct.new(:javadoc, :modifiers, :name, :p, :ret, :arguments, :i)
 
-AIDL2Interface = Struct.new(:javadoc, :modifiers, :name, :p, :methods, :package,
-                            :imports, :tokens)
+AIDL2Interface = Struct.new(:javadoc, :modifiers, :name, :p, :generic,
+                            :methods, :package, :imports, :tokens)
 
 IMPORT_TYPES = {?o => :import, ?f => :parcelable, ?s => :serializable}
 
@@ -30,6 +30,8 @@ IMPORT_TYPES = {?o => :import, ?f => :parcelable, ?s => :serializable}
         modifiers = interface_modifiers.dup
         javadoc = nil
     }
+
+    action store_interface_generic { interface_generic = token_list.tokens[p] }
 
     action mark_type_name_start { type_name_start = p }
     action store_type_name { type_name = token_list.join(type_name_start, p) }
@@ -77,7 +79,8 @@ IMPORT_TYPES = {?o => :import, ?f => :parcelable, ?s => :serializable}
              'n' @store_method_name '(' arg_list ');' @append_method;
 
     interface = entity_prefix %store_interface_modifiers_and_javadoc
-                'in' @store_interface_name '{' method* '}';
+                'in' @store_interface_name ('g' @store_interface_generic)?
+                '{' method* '}';
 
     main := package import_* interface?;
 }%%
@@ -103,6 +106,7 @@ class Parser
         direction = :in
         import_type = :import
         interface_name_p = nil
+        interface_generic = nil
 
         %% write init;
         %% write exec;
@@ -116,7 +120,8 @@ class Parser
         else
             interface_name = token_list.tokens[interface_name_p]
             AIDL2Interface.new(interface_javadoc, interface_modifiers,
-                               interface_name, interface_name_p, methods,
+                               interface_name, interface_name_p,
+                               interface_generic, methods,
                                package_name, imports, token_list)
         end
     end
