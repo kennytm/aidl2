@@ -48,4 +48,6 @@ interface ISampleService1 {
     
     /** We can send and receive UUIDs. */
     UUID exchangeUUIDs(in UUID uuid, inout UUID[] uuids);
+    
+    List<UUID> exchangeUUIDs(List<UUID> uuids);
 }

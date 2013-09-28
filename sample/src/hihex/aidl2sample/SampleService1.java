@@ -126,6 +126,15 @@ public final class SampleService1 extends Service {
             uuids[0] = null;
             return retval;
         }
+
+        @Override
+        public List<UUID> exchangeUUIDs(final List<UUID> uuids) throws RemoteException {
+            if (uuids.get(2) != null) {
+                throw new RuntimeException("Wrong UUID");
+            }
+
+            return uuids.subList(0, 2);
+        }
     };
 
     @Override

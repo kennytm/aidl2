@@ -221,6 +221,16 @@ public final class SampleActivity extends Activity implements ServiceConnection 
                 return ret2 == null && a.equals(ret) && Arrays.equals(arr, new UUID[] {null, c, b});
             }
         });
+
+        mTestResultAdapter.addTestCase(new Predicate() {
+            @Override
+            public boolean run() throws RemoteException {
+                final List<UUID> res =
+                        mSampleService1.exchangeUUIDs(Arrays.asList(new UUID(123, -456), new UUID(9876, 5432), null));
+                return res.size() == 2 && res.get(0).equals(new UUID(123, -456))
+                       && res.get(1).equals(new UUID(9876, 5432));
+            }
+        });
     }
 
     private void addTestCasesForSampleService2() {
