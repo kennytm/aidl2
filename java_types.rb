@@ -52,6 +52,25 @@ class Class
     end
 end
 
+
+$ident_index = 0
+
+def alloc_index
+    $ident_index += 1
+end
+
+def reset_index
+    $ident_index = 0
+end
+
+def gi(sym)
+    if $ident_index == 1
+        "_#{sym}"
+    else
+        "_#{sym}#{$ident_index}"
+    end
+end
+
 #}}}
 
 
@@ -405,11 +424,12 @@ class UUIDJavaType < JavaType # :nodoc:
     register_java_type(/\A(?:java\.util\.)?UUID\z/)
 
     def create_from_parcel(parcel, name)
+        alloc_index
         ";
         if (#{parcel}.readInt() != 0) {
-            final long _msb_#{name} = #{parcel}.readLong();
-            final long _lsb_#{name} = #{parcel}.readLong();
-            #{name} = new java.util.UUID(_msb_#{name}, _lsb_#{name});
+            final long #{gi:msb} = #{parcel}.readLong();
+            final long #{gi:lsb} = #{parcel}.readLong();
+            #{name} = new java.util.UUID(#{gi:msb}, #{gi:lsb});
         } else {
             #{name} = null;
         }".dedent(8)
@@ -469,14 +489,73 @@ class GenericArrayJavaType < JavaType # :nodoc:
     end
 
     def create_buffer(parcel, name)
+        alloc_index
         ";
-        final int _length_#{name} = #{parcel}.readInt();
-        if (_length_#{name} >= 0) {
-            #{name} = new #{@arg.type[0...-2]}[_length_#{name}];
+        final int #{gi:length} = #{parcel}.readInt();
+        if (#{gi:length} >= 0) {
+            #{name} = new #{@arg.type[0...-2]}[#{gi:length}];
         } else {
             #{name} = null;
         }".dedent(8)
     end
+end
+
+
+def read_uuid_list_common(parcel, initializer, setter)
+    "final long[] #{gi:bits} = #{parcel}.createLongArray();
+    if (#{gi:bits} != null) {
+        final boolean #{gi:hasNull} = (#{parcel}.readInt() != 0);
+        long #{gi:nullMsb} = 0;
+        long #{gi:nullLsb} = 0;
+        if (#{gi:hasNull}) {
+            #{gi:nullMsb} = #{parcel}.readLong();
+            #{gi:nullLsb} = #{parcel}.readLong();
+        }
+        final int #{gi:length} = #{gi:bits}.length / 2;
+        #{initializer}
+        for (int #{gi:i} = 0, #{gi:j} = 0; #{gi:i} < #{gi:length}; ++ #{gi:i}) {
+            final long #{gi:msb} = #{gi:bits}[#{gi:j}++];
+            final long #{gi:lsb} = #{gi:bits}[#{gi:j}++];
+            final java.util.UUID #{gi:uuid};
+            if (#{gi:hasNull} && #{gi:msb} == #{gi:nullMsb} && #{gi:lsb} == #{gi:nullLsb}) {
+                #{gi:uuid} = null;
+            } else {
+                #{gi:uuid} = new java.util.UUID(#{gi:msb}, #{gi:lsb});
+            }
+            #{setter}
+        }
+    }".dedent(4)
+end
+
+
+def write_uuid_list_common(parcel, name, length_member, to_list)
+    "if (#{name} != null) {
+        final long[] #{gi:bits} = new long[#{name}.#{length_member} * 2];
+        java.util.UUID #{gi:nullUuid} = null;
+        int #{gi:i} = 0;
+        for (java.util.UUID #{gi:uuid} : #{name}) {
+            if (#{gi:uuid} == null) {
+                if (#{gi:nullUuid} == null) {
+                    do {
+                        #{gi:nullUuid} = java.util.UUID.randomUUID();
+                    } while (#{to_list}.contains(#{gi:nullUuid}));
+                }
+                #{gi:uuid} = #{gi:nullUuid};
+            }
+            #{gi:bits}[#{gi:i}++] = #{gi:uuid}.getMostSignificantBits();
+            #{gi:bits}[#{gi:i}++] = #{gi:uuid}.getLeastSignificantBits();
+        }
+        #{parcel}.writeLongArray(#{gi:bits});
+        if (#{gi:nullUuid} != null) {
+            #{parcel}.writeInt(1);
+            #{parcel}.writeLong(#{gi:nullUuid}.getMostSignificantBits());
+            #{parcel}.writeLong(#{gi:nullUuid}.getLeastSignificantBits());
+        } else {
+            #{parcel}.writeInt(0);
+        }
+    } else {
+        #{parcel}.writeLongArray(null);
+    }".dedent(4)
 end
 
 
@@ -486,83 +565,26 @@ class UUIDArrayJavaType < GenericArrayJavaType # :nodoc:
     register_java_type(/(?:java\.util\.)?UUID\[\]\z/)
 
     def create_from_parcel(parcel, name)
-        ";
-        final long[] _longs_#{name} = #{parcel}.createLongArray();
-        if (_longs_#{name} == null) {
-            #{name} = null;
-        } else {
-            final boolean _hasNullUuid_#{name} = (#{parcel}.readInt() != 0);
-            long _nullUuidMsb_#{name} = 0;
-            long _nullUuidLsb_#{name} = 0;
-            if (_hasNullUuid_#{name}) {
-                _nullUuidMsb_#{name} = #{parcel}.readLong();
-                _nullUuidLsb_#{name} = #{parcel}.readLong();
-            }
-            final int _length_#{name} = _longs_#{name}.length / 2;
-            #{name} = new java.util.UUID[_length_#{name}];
-            for (int _i_#{name} = 0, _j_#{name} = 0; _i_#{name} < _length_#{name}; ++ _i_#{name}) {
-                final long _msb_#{name} = _longs_#{name}[_j_#{name}++];
-                final long _lsb_#{name} = _longs_#{name}[_j_#{name}++];
-                if (_hasNullUuid_#{name} && _msb_#{name} == _nullUuidMsb_#{name} && _lsb_#{name} == _nullUuidLsb_#{name}) {
-                    #{name}[_i_#{name}] = null;
-                } else {
-                    #{name}[_i_#{name}] = new java.util.UUID(_msb_#{name}, _lsb_#{name});
-                }
-            }
-        }".dedent(8)
+        alloc_index
+        initializer = "#{name} = new java.util.UUID[#{gi:length}];"
+        setter = "#{name}[#{gi:i}] = #{gi:uuid};"
+        res = ";\n#{read_uuid_list_common(parcel, initializer, setter)} else {\n"
+        res << "    #{name} = null;\n}"
+        res
     end
 
     def write_to_parcel(parcel, name)
-        "if (#{name} == null) {
-            #{parcel}.writeLongArray(null);
-        } else {
-            final long[] _writeLongs_#{name} = new long[#{name}.length*2];
-            java.util.UUID _nullUuid_#{name} = null;
-            int _i_#{name} = 0;
-            for (java.util.UUID _uuid_#{name} : #{name}) {
-                if (_uuid_#{name} == null) {
-                    if (_nullUuid_#{name} == null) {
-                        do {
-                            _nullUuid_#{name} = java.util.UUID.randomUUID();
-                        } while (java.util.Arrays.asList(#{name}).contains(_nullUuid_#{name}));
-                    }
-                    _uuid_#{name} = _nullUuid_#{name};
-                }
-                _writeLongs_#{name}[_i_#{name}++] = _uuid_#{name}.getMostSignificantBits();
-                _writeLongs_#{name}[_i_#{name}++] = _uuid_#{name}.getLeastSignificantBits();
-            }
-            #{parcel}.writeLongArray(_writeLongs_#{name});
-            if (_nullUuid_#{name} != null) {
-                #{parcel}.writeInt(1);
-                #{parcel}.writeLong(_nullUuid_#{name}.getMostSignificantBits());
-                #{parcel}.writeLong(_nullUuid_#{name}.getLeastSignificantBits());
-            } else {
-                #{parcel}.writeInt(0);
-            }
-        }".dedent(8)
+        alloc_index
+        write_uuid_list_common(parcel, name, "length", "java.util.Arrays.asList(#{name})")
     end
 
     def read_from_parcel(parcel, name)
-        "final long[] _longs_#{name} = #{parcel}.createLongArray();
-        if (_longs_#{name} != null) {
-            final boolean _hasNullUuid_#{name} = (#{parcel}.readInt() != 0);
-            long _nullUuidMsb_#{name} = 0;
-            long _nullUuidLsb_#{name} = 0;
-            if (_hasNullUuid_#{name}) {
-                _nullUuidMsb_#{name} = #{parcel}.readLong();
-                _nullUuidLsb_#{name} = #{parcel}.readLong();
-            }
-            final int _length_#{name} = Math.min(#{name}.length, _longs_#{name}.length / 2);
-            for (int _i_#{name} = 0, _j_#{name} = 0; _i_#{name} < _length_#{name}; ++ _i_#{name}) {
-                final long _msb_#{name} = _longs_#{name}[_j_#{name}++];
-                final long _lsb_#{name} = _longs_#{name}[_j_#{name}++];
-                if (_hasNullUuid_#{name} && _msb_#{name} == _nullUuidMsb_#{name} && _lsb_#{name} == _nullUuidLsb_#{name}) {
-                    #{name}[_i_#{name}] = null;
-                } else {
-                    #{name}[_i_#{name}] = new java.util.UUID(_msb_#{name}, _lsb_#{name});
-                }
-            }
-        }".dedent(8)
+        alloc_index
+        initializer = ""
+        setter = "if (#{gi:i} < #{name}.length) {
+            #{name}[#{gi:i}] = #{gi:uuid};
+        }"
+        read_uuid_list_common(parcel, initializer, setter)
     end
 end
 
@@ -623,23 +645,25 @@ class GenericListJavaType < JavaType # :nodoc:
         when :parcelable
             " = #{parcel}.createTypedArrayList(#{@creator});"
         when :interface
+            alloc_index
             ";
-            final java.util.ArrayList<android.os.IBinder> _binderProxies_#{name} = #{parcel}.createBinderArrayList();
-            if (_binderProxies_#{name} != null) {
-                final int _size_#{name} = _binderProxies_#{name}.size();
-                #{name}#{create_buffer(parcel, name)[0...-3]}(_size_#{name});
-                for (final android.os.IBinder _binder_#{name} : _binderProxies_#{name}) {
-                    #{name}.add(#{remove_generics(@content_type)}.Stub.asInterface(_binder_#{name}));
+            final java.util.ArrayList<android.os.IBinder> #{gi:binders} = #{parcel}.createBinderArrayList();
+            if (#{gi:binders} != null) {
+                final int #{gi:size} = #{gi:binders}.size();
+                #{name}#{create_buffer(parcel, name)[0...-3]}(#{gi:size});
+                for (final android.os.IBinder #{gi:binder} : #{gi:binders}) {
+                    #{name}.add(#{remove_generics(@content_type)}.Stub.asInterface(#{gi:binder}));
                 }
             } else {
                 #{name} = null;
             }".dedent(12)
         when :serializable
+            alloc_index
             ";
-            final int _size_#{name} = #{parcel}.readInt();
-            if (_size_#{name} >= 0) {
-                #{name} = new java.util.ArrayList<#{@content_type}>(_size_#{name});
-                for (int _i_#{name} = 0; _i_#{name} < _size_#{name}; ++ _i_#{name}) {
+            final int #{gi:size} = #{parcel}.readInt();
+            if (#{gi:size} >= 0) {
+                #{name} = new java.util.ArrayList<#{@content_type}>(#{gi:size});
+                for (int #{gi:i} = 0; #{gi:i} < #{gi:size}; ++ #{gi:i}) {
                     #{name}.add((#{@content_type}) #{parcel}.readSerializable());
                 }
             } else {
@@ -653,17 +677,19 @@ class GenericListJavaType < JavaType # :nodoc:
         when :parcelable
             "#{parcel}.writeTypedList(#{name});"
         when :interface
-            "final int _writeSize_#{name} = #{name}.size();
-            final java.util.ArrayList<android.os.IBinder> _realBinders_#{name} = new java.util.ArrayList<android.os.IBinder>(_writeSize_#{name});
-            for (final android.os.IInterface _interface_#{name} : #{name}) {
-                _realBinders_#{name}.add(_interface_#{name} != null ? _interface_#{name}.asBinder() : null);
+            alloc_index
+            "final int #{gi:size} = #{name}.size();
+            final java.util.ArrayList<android.os.IBinder> #{gi:binders} = new java.util.ArrayList<android.os.IBinder>(#{gi:size});
+            for (final android.os.IInterface #{gi:interface} : #{name}) {
+                #{gi:binders}.add(#{gi:interface} != null ? #{gi:interface}.asBinder() : null);
             }
-            #{parcel}.writeBinderList(_realBinders_#{name});".dedent(12)
+            #{parcel}.writeBinderList(#{gi:binders});".dedent(12)
         when :serializable
+            alloc_index
             "if (#{name} != null) {
                 #{parcel}.writeInt(#{name}.size());
-                for (final java.io.Serializable _item_#{name} : #{name}) {
-                    #{parcel}.writeSerializable(_item_#{name});
+                for (final java.io.Serializable #{gi:item} : #{name}) {
+                    #{parcel}.writeSerializable(#{gi:item});
                 }
             } else {
                 #{parcel}.writeInt(-1);
@@ -676,18 +702,19 @@ class GenericListJavaType < JavaType # :nodoc:
         when :parcelable
             "#{parcel}.readTypedArrayList(#{name}, #{@creator});"
         when :interface
-            "final java.util.ArrayList<android.os.IBinder> _binderProxies_#{name} = #{parcel}.createBinderArrayList();
-            if (_binderProxies_#{name} != null) {
+            alloc_index
+            "final java.util.ArrayList<android.os.IBinder> #{gi:binders} = #{parcel}.createBinderArrayList();
+            if (#{gi:binders} != null) {
                 #{name}.clear();
-                for (final android.os.IBinder _binder_#{name} : _binderProxies_#{name}) {
-                    #{name}.add(#{remove_generics(@content_type)}.Stub.asInterface(_binder_#{name}));
+                for (final android.os.IBinder #{gi:binder} : #{gi:binders}) {
+                    #{name}.add(#{remove_generics(@content_type)}.Stub.asInterface(#{gi:binder}));
                 }
             }".dedent(12)
         when :serializable
-            "final int _readSize_#{name} = #{parcel}.readInt();
-            if (_readSize_#{name} >= 0) {
+            "final int #{gi:size} = #{parcel}.readInt();
+            if (#{gi:size} >= 0) {
                 #{name}.clear();
-                for (int _i_#{name} = 0; _i_#{name} < _readSize_#{name}; ++ _i_#{name}) {
+                for (int #{gi:i} = 0; #{gi:i} < #{gi:size}; ++ #{gi:i}) {
                     #{name}.add((#{@content_type}) #{parcel}.readSerializable());
                 }
             }".dedent(12)
@@ -739,96 +766,34 @@ class UUIDListJavaType < JavaType # :nodoc:
     /x)
 
     def create_from_parcel(parcel, name)
-        ";
-        final long[] _longs_#{name} = #{parcel}.createLongArray();
-        if (_longs_#{name} == null) {
-            #{name} = null;
-        } else {
-            final boolean _hasNullUuid_#{name} = (#{parcel}.readInt() != 0);
-            long _nullUuidMsb_#{name} = 0;
-            long _nullUuidLsb_#{name} = 0;
-            if (_hasNullUuid_#{name}) {
-                _nullUuidMsb_#{name} = #{parcel}.readLong();
-                _nullUuidLsb_#{name} = #{parcel}.readLong();
-            }
-            final int _length_#{name} = _longs_#{name}.length;
-            #{name} = new java.util.ArrayList<java.util.UUID>(_length_#{name} / 2);
-            for (int _i_#{name} = 0; _i_#{name} < _length_#{name}; _i_#{name} += 2) {
-                final long _msb_#{name} = _longs_#{name}[_i_#{name}];
-                final long _lsb_#{name} = _longs_#{name}[_i_#{name} + 1];
-                if (_hasNullUuid_#{name} && _msb_#{name} == _nullUuidMsb_#{name} && _lsb_#{name} == _nullUuidLsb_#{name}) {
-                    #{name}.add(null);
-                } else {
-                    #{name}.add(new java.util.UUID(_msb_#{name}, _lsb_#{name}));
-                }
-            }
-        }".dedent(8)
+        alloc_index
+        initializer = "#{name} = new java.util.ArrayList<java.util.UUID>(#{gi:length});"
+        setter = "#{name}.add(#{gi:uuid});"
+        res = ";\n#{read_uuid_list_common(parcel, initializer, setter)} else {\n"
+        res << "    #{name} = null;\n}"
+        res
     end
 
     def write_to_parcel(parcel, name)
-        "if (#{name} == null) {
-            #{parcel}.writeLongArray(null);
-        } else {
-            final long[] _writeLongs_#{name} = new long[#{name}.size() * 2];
-            java.util.UUID _nullUuid_#{name} = null;
-            int _i_#{name} = 0;
-            for (java.util.UUID _uuid_#{name} : #{name}) {
-                if (_uuid_#{name} == null) {
-                    if (_nullUuid_#{name} == null) {
-                        do {
-                            _nullUuid_#{name} = java.util.UUID.randomUUID();
-                        } while (#{name}.contains(_nullUuid_#{name}));
-                    }
-                    _uuid_#{name} = _nullUuid_#{name};
-                }
-                _writeLongs_#{name}[_i_#{name}++] = _uuid_#{name}.getMostSignificantBits();
-                _writeLongs_#{name}[_i_#{name}++] = _uuid_#{name}.getLeastSignificantBits();
-            }
-            #{parcel}.writeLongArray(_writeLongs_#{name});
-            if (_nullUuid_#{name} != null) {
-                #{parcel}.writeInt(1);
-                #{parcel}.writeLong(_nullUuid_#{name}.getMostSignificantBits());
-                #{parcel}.writeLong(_nullUuid_#{name}.getLeastSignificantBits());
-            } else {
-                #{parcel}.writeInt(0);
-            }
-        }".dedent(8)
+        alloc_index
+        write_uuid_list_common(parcel, name, "size()", name)
     end
 
     def read_from_parcel(parcel, name)
-        "final long[] _longs_#{name} = #{parcel}.createLongArray();
-        if (_longs_#{name} != null) {
-            final boolean _hasNullUuid_#{name} = (#{parcel}.readInt() != 0);
-            long _nullUuidMsb_#{name} = 0;
-            long _nullUuidLsb_#{name} = 0;
-            if (_hasNullUuid_#{name}) {
-                _nullUuidMsb_#{name} = #{parcel}.readLong();
-                _nullUuidLsb_#{name} = #{parcel}.readLong();
-            }
-            final int _currentSize_#{name} = #{name}.size();
-            final int _newSize_#{name} = _longs_#{name}.length / 2;
-            final int _commonSize_#{name} = Math.min(_currentSize_#{name}, _newSize_#{name});
-            int _i_#{name} = 0;
-            int _j_#{name} = 0;
-            for (; _i_#{name} < _newSize_#{name}; ++ _i_#{name}) {
-                final long _msb_#{name} = _longs_#{name}[_j_#{name}++];
-                final long _lsb_#{name} = _longs_#{name}[_j_#{name}++];
-                final java.util.UUID _uuid_#{name};
-                if (_hasNullUuid_#{name} && _msb_#{name} == _nullUuidMsb_#{name} && _lsb_#{name} == _nullUuidLsb_#{name}) {
-                    _uuid_#{name} = null;
-                } else {
-                    _uuid_#{name} = new java.util.UUID(_msb_#{name}, _lsb_#{name});
-                }
-                if (_i_#{name} >= _currentSize_#{name}) {
-                    #{name}.add(_uuid_#{name});
-                } else {
-                    #{name}.set(_i_#{name}, _uuid_#{name});
-                }
-            }
-            if (_newSize_#{name} < _currentSize_#{name}) {
-                #{name}.subList(_newSize_#{name}, _currentSize_#{name}).clear();
-            }
-        }".dedent(8)
+        alloc_index
+
+        initializer = "final int #{gi:curSize} = #{name}.size();
+        if (#{gi:curSize} > #{gi:length}) {
+            #{name}.subList(#{gi:length}, #{gi:curSize}).clear();
+        }"
+
+        setter = "if (#{gi:i} < #{gi:curSize}) {
+            #{name}.set(#{gi:i}, #{gi:uuid});
+        } else {
+            #{name}.add(#{gi:uuid});
+        }".indent(4)
+
+        read_uuid_list_common(parcel, initializer, setter)
     end
 
     include CreateArrayListMixin
@@ -883,13 +848,14 @@ class SparseBooleanArrayJavaType < JavaType # :nodoc:
 
     def read_from_parcel(parcel, name)
         # TODO find way to invoke .readSparseBooleanArrayInternal() instead.
+        alloc_index
         "#{name}.clear();
-        final android.os.SparseBooleanArray _array_#{name} = #{parcel}.readSparseBooleanArray();
-        final int _size_#{name} = _array_#{name}.size();
-        for (int _i_#{name} = 0; _i_#{name} < _s_#{name}; ++ _i_#{name}) {
-            final int _key_#{name} = _array_#{name}.keyAt(_i_#{name});
-            final boolean _value_#{name} = _array_#{name}.valueAt(_i_#{name});
-            #{name}.append(_key_#{name}, _value_#{name});
+        final android.os.SparseBooleanArray #{gi:array} = #{parcel}.readSparseBooleanArray();
+        final int #{gi:size} = #{gi:array}.size();
+        for (int #{gi:i} = 0; #{gi:i} < #{gi:size}; ++ #{gi:i}) {
+            final int #{gi:key} = #{gi:array}.keyAt(#{gi:i});
+            final boolean #{gi:value} = #{gi:array}.valueAt(#{gi:i});
+            #{name}.append(#{gi:key}, #{gi:value});
         }".dedent(8)
     end
 

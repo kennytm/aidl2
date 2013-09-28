@@ -65,8 +65,8 @@ public interface <%= name %> extends android.os.IInterface {
             case INTERFACE_TRANSACTION:
                 reply.writeString(DESCRIPTOR);
                 return true;
-            <% methods.each do |method| %>
-            case FIRST_CALL_TRANSACTION + <%= method.i %>: {
+            <% methods.each do |method| reset_index %>
+            case FIRST_CALL_TRANSACTION + <%= method.i %>: { // <%= method.name %>
                 data.enforceInterface(DESCRIPTOR);
                 <%= TRANSACTION_ERB.result_of(method, _self).indent(16) %>
                 return true;
@@ -86,7 +86,7 @@ public interface <%= name %> extends android.os.IInterface {
             public android.os.IBinder asBinder() {
                 return mRemote;
             }
-            <% methods.each do |method| %>
+            <% methods.each do |method| reset_index %>
             @Override
             <%= METHOD_SIGNATURE_ERB.result_of(method, _self) %> {
                 <%= PROXY_ERB.result_of(method, _self).indent(16) %>
