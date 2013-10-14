@@ -11,6 +11,8 @@ file "inlined_files.tmp.rb" => FileList["*.erb", "known_parcelables.txt"] do |t|
 
 # This is a generated file. DO NOT EDIT.
 # Checkout <https://github.com/kennytm/aidl2> instead.
+#
+# Version #{`git describe`}
 
 =begin GPLv3
 
