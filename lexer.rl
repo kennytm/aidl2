@@ -36,7 +36,7 @@ end
     machine lexer;
 
     direction = 'in' | 'out' | 'inout';
-    modifier = 'oneway' | 'mainthread' | 'localthrow';
+    modifier = 'oneway' | 'mainthread' | 'localthrow' | 'logtransaction';
 
     generic_open = '<' @{ generic_depth += 1 };
     generic_char = ([^<>]

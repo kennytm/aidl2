@@ -1,3 +1,5 @@
+<% if modifiers.include?(:logtransaction) %>
+android.util.Log.d(DESCRIPTOR, "<%= name %>/pre-transaction");<% end %>
 <%# Encode the arguments -%>
 <% arguments.each_with_index do |arg, j| -%>
 final <%= arg.type %> _arg<%= j %><%= JavaType.encode(:transact, :pre, arg, "_arg#{j}", _self) %>
@@ -48,3 +50,5 @@ reply.writeNoException();<% end %>
 <%= JavaType.encode(:transact, :post, ret, "_result", _self) %><% end %>
 <% arguments.each_with_index do |arg, j| -%>
 <%= JavaType.encode(:transact, :post, arg, "_arg#{j}", _self) %><% end -%>
+<% if modifiers.include?(:logtransaction) %>
+android.util.Log.d(DESCRIPTOR, "<%= name %>/post-transaction");<% end -%>
