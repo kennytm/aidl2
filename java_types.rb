@@ -434,9 +434,9 @@ class UUIDJavaType < JavaType # :nodoc:
         alloc_index
         ";
         if (#{parcel}.readInt() != 0) {
-            final long #{gi:msb} = #{parcel}.readLong();
-            final long #{gi:lsb} = #{parcel}.readLong();
-            #{name} = new java.util.UUID(#{gi:msb}, #{gi:lsb});
+            final long #{gi :msb} = #{parcel}.readLong();
+            final long #{gi :lsb} = #{parcel}.readLong();
+            #{name} = new java.util.UUID(#{gi :msb}, #{gi :lsb});
         } else {
             #{name} = null;
         }".dedent(8)
@@ -513,9 +513,9 @@ class GenericArrayJavaType < JavaType # :nodoc:
     def create_buffer(parcel, name)
         alloc_index
         ";
-        final int #{gi:length} = #{parcel}.readInt();
-        if (#{gi:length} >= 0) {
-            #{name} = new #{@repr_type[0...-2]}[#{gi:length}];
+        final int #{gi :length} = #{parcel}.readInt();
+        if (#{gi :length} >= 0) {
+            #{name} = new #{@repr_type[0...-2]}[#{gi :length}];
         } else {
             #{name} = null;
         }".dedent(8)
@@ -524,25 +524,25 @@ end
 
 
 def read_uuid_list_common(parcel, initializer, setter)
-    "final long[] #{gi:bits} = #{parcel}.createLongArray();
-    if (#{gi:bits} != null) {
-        final boolean #{gi:hasNull} = (#{parcel}.readInt() != 0);
-        long #{gi:nullMsb} = 0;
-        long #{gi:nullLsb} = 0;
-        if (#{gi:hasNull}) {
-            #{gi:nullMsb} = #{parcel}.readLong();
-            #{gi:nullLsb} = #{parcel}.readLong();
+    "final long[] #{gi :bits} = #{parcel}.createLongArray();
+    if (#{gi :bits} != null) {
+        final boolean #{gi :hasNull} = (#{parcel}.readInt() != 0);
+        long #{gi :nullMsb} = 0;
+        long #{gi :nullLsb} = 0;
+        if (#{gi :hasNull}) {
+            #{gi :nullMsb} = #{parcel}.readLong();
+            #{gi :nullLsb} = #{parcel}.readLong();
         }
-        final int #{gi:length} = #{gi:bits}.length / 2;
+        final int #{gi :length} = #{gi :bits}.length / 2;
         #{initializer}
-        for (int #{gi:i} = 0, #{gi:j} = 0; #{gi:i} < #{gi:length}; ++ #{gi:i}) {
-            final long #{gi:msb} = #{gi:bits}[#{gi:j}++];
-            final long #{gi:lsb} = #{gi:bits}[#{gi:j}++];
-            final java.util.UUID #{gi:uuid};
-            if (#{gi:hasNull} && #{gi:msb} == #{gi:nullMsb} && #{gi:lsb} == #{gi:nullLsb}) {
-                #{gi:uuid} = null;
+        for (int #{gi :i} = 0, #{gi :j} = 0; #{gi :i} < #{gi :length}; ++ #{gi :i}) {
+            final long #{gi :msb} = #{gi :bits}[#{gi :j}++];
+            final long #{gi :lsb} = #{gi :bits}[#{gi :j}++];
+            final java.util.UUID #{gi :uuid};
+            if (#{gi :hasNull} && #{gi :msb} == #{gi :nullMsb} && #{gi :lsb} == #{gi :nullLsb}) {
+                #{gi :uuid} = null;
             } else {
-                #{gi:uuid} = new java.util.UUID(#{gi:msb}, #{gi:lsb});
+                #{gi :uuid} = new java.util.UUID(#{gi :msb}, #{gi :lsb});
             }
             #{setter}
         }
@@ -552,26 +552,26 @@ end
 
 def write_uuid_list_common(parcel, name, length_member, to_list)
     "if (#{name} != null) {
-        final long[] #{gi:bits} = new long[#{name}.#{length_member} * 2];
-        java.util.UUID #{gi:nullUuid} = null;
-        int #{gi:i} = 0;
-        for (java.util.UUID #{gi:uuid} : #{name}) {
-            if (#{gi:uuid} == null) {
-                if (#{gi:nullUuid} == null) {
+        final long[] #{gi :bits} = new long[#{name}.#{length_member} * 2];
+        java.util.UUID #{gi :nullUuid} = null;
+        int #{gi :i} = 0;
+        for (java.util.UUID #{gi :uuid} : #{name}) {
+            if (#{gi :uuid} == null) {
+                if (#{gi :nullUuid} == null) {
                     do {
-                        #{gi:nullUuid} = java.util.UUID.randomUUID();
-                    } while (#{to_list}.contains(#{gi:nullUuid}));
+                        #{gi :nullUuid} = java.util.UUID.randomUUID();
+                    } while (#{to_list}.contains(#{gi :nullUuid}));
                 }
-                #{gi:uuid} = #{gi:nullUuid};
+                #{gi :uuid} = #{gi :nullUuid};
             }
-            #{gi:bits}[#{gi:i}++] = #{gi:uuid}.getMostSignificantBits();
-            #{gi:bits}[#{gi:i}++] = #{gi:uuid}.getLeastSignificantBits();
+            #{gi :bits}[#{gi :i}++] = #{gi :uuid}.getMostSignificantBits();
+            #{gi :bits}[#{gi :i}++] = #{gi :uuid}.getLeastSignificantBits();
         }
-        #{parcel}.writeLongArray(#{gi:bits});
-        if (#{gi:nullUuid} != null) {
+        #{parcel}.writeLongArray(#{gi :bits});
+        if (#{gi :nullUuid} != null) {
             #{parcel}.writeInt(1);
-            #{parcel}.writeLong(#{gi:nullUuid}.getMostSignificantBits());
-            #{parcel}.writeLong(#{gi:nullUuid}.getLeastSignificantBits());
+            #{parcel}.writeLong(#{gi :nullUuid}.getMostSignificantBits());
+            #{parcel}.writeLong(#{gi :nullUuid}.getLeastSignificantBits());
         } else {
             #{parcel}.writeInt(0);
         }
@@ -588,8 +588,8 @@ class UUIDArrayJavaType < GenericArrayJavaType # :nodoc:
 
     def create_from_parcel(parcel, name)
         alloc_index
-        initializer = "#{name} = new java.util.UUID[#{gi:length}];"
-        setter = "#{name}[#{gi:i}] = #{gi:uuid};"
+        initializer = "#{name} = new java.util.UUID[#{gi :length}];"
+        setter = "#{name}[#{gi :i}] = #{gi :uuid};"
         res = ";\n#{read_uuid_list_common(parcel, initializer, setter)} else {\n"
         res << "    #{name} = null;\n}"
         res
@@ -603,8 +603,8 @@ class UUIDArrayJavaType < GenericArrayJavaType # :nodoc:
     def read_from_parcel(parcel, name)
         alloc_index
         initializer = ""
-        setter = "if (#{gi:i} < #{name}.length) {
-            #{name}[#{gi:i}] = #{gi:uuid};
+        setter = "if (#{gi :i} < #{name}.length) {
+            #{name}[#{gi :i}] = #{gi :uuid};
         }"
         read_uuid_list_common(parcel, initializer, setter)
     end
@@ -668,12 +668,12 @@ class GenericListJavaType < JavaType # :nodoc:
         when :interface
             alloc_index
             ";
-            final java.util.ArrayList<android.os.IBinder> #{gi:binders} = #{parcel}.createBinderArrayList();
-            if (#{gi:binders} != null) {
-                final int #{gi:size} = #{gi:binders}.size();
-                #{name}#{create_buffer(parcel, name)[0...-3]}(#{gi:size});
-                for (final android.os.IBinder #{gi:binder} : #{gi:binders}) {
-                    #{name}.add(#{remove_generics(@content_type)}.Stub.asInterface(#{gi:binder}));
+            final java.util.ArrayList<android.os.IBinder> #{gi :binders} = #{parcel}.createBinderArrayList();
+            if (#{gi :binders} != null) {
+                final int #{gi :size} = #{gi :binders}.size();
+                #{name}#{create_buffer(parcel, name)[0...-3]}(#{gi :size});
+                for (final android.os.IBinder #{gi :binder} : #{gi :binders}) {
+                    #{name}.add(#{remove_generics(@content_type)}.Stub.asInterface(#{gi :binder}));
                 }
             } else {
                 #{name} = null;
@@ -681,10 +681,10 @@ class GenericListJavaType < JavaType # :nodoc:
         when :serializable
             alloc_index
             ";
-            final int #{gi:size} = #{parcel}.readInt();
-            if (#{gi:size} >= 0) {
-                #{name} = new java.util.ArrayList<#{@content_type}>(#{gi:size});
-                for (int #{gi:i} = 0; #{gi:i} < #{gi:size}; ++ #{gi:i}) {
+            final int #{gi :size} = #{parcel}.readInt();
+            if (#{gi :size} >= 0) {
+                #{name} = new java.util.ArrayList<#{@content_type}>(#{gi :size});
+                for (int #{gi :i} = 0; #{gi :i} < #{gi :size}; ++ #{gi :i}) {
                     #{name}.add((#{@content_type}) #{parcel}.readSerializable());
                 }
             } else {
@@ -699,18 +699,18 @@ class GenericListJavaType < JavaType # :nodoc:
             "#{parcel}.writeTypedList(#{name});"
         when :interface
             alloc_index
-            "final int #{gi:size} = #{name}.size();
-            final java.util.ArrayList<android.os.IBinder> #{gi:binders} = new java.util.ArrayList<android.os.IBinder>(#{gi:size});
-            for (final android.os.IInterface #{gi:interface} : #{name}) {
-                #{gi:binders}.add(#{gi:interface} != null ? #{gi:interface}.asBinder() : null);
+            "final int #{gi :size} = #{name}.size();
+            final java.util.ArrayList<android.os.IBinder> #{gi :binders} = new java.util.ArrayList<android.os.IBinder>(#{gi :size});
+            for (final android.os.IInterface #{gi :interface} : #{name}) {
+                #{gi :binders}.add(#{gi :interface} != null ? #{gi :interface}.asBinder() : null);
             }
-            #{parcel}.writeBinderList(#{gi:binders});".dedent(12)
+            #{parcel}.writeBinderList(#{gi :binders});".dedent(12)
         when :serializable
             alloc_index
             "if (#{name} != null) {
                 #{parcel}.writeInt(#{name}.size());
-                for (final java.io.Serializable #{gi:item} : #{name}) {
-                    #{parcel}.writeSerializable(#{gi:item});
+                for (final java.io.Serializable #{gi :item} : #{name}) {
+                    #{parcel}.writeSerializable(#{gi :item});
                 }
             } else {
                 #{parcel}.writeInt(-1);
@@ -724,18 +724,18 @@ class GenericListJavaType < JavaType # :nodoc:
             "#{parcel}.readTypedArrayList(#{name}, #{@creator});"
         when :interface
             alloc_index
-            "final java.util.ArrayList<android.os.IBinder> #{gi:binders} = #{parcel}.createBinderArrayList();
-            if (#{gi:binders} != null) {
+            "final java.util.ArrayList<android.os.IBinder> #{gi :binders} = #{parcel}.createBinderArrayList();
+            if (#{gi :binders} != null) {
                 #{name}.clear();
-                for (final android.os.IBinder #{gi:binder} : #{gi:binders}) {
-                    #{name}.add(#{remove_generics(@content_type)}.Stub.asInterface(#{gi:binder}));
+                for (final android.os.IBinder #{gi :binder} : #{gi :binders}) {
+                    #{name}.add(#{remove_generics(@content_type)}.Stub.asInterface(#{gi :binder}));
                 }
             }".dedent(12)
         when :serializable
-            "final int #{gi:size} = #{parcel}.readInt();
-            if (#{gi:size} >= 0) {
+            "final int #{gi :size} = #{parcel}.readInt();
+            if (#{gi :size} >= 0) {
                 #{name}.clear();
-                for (int #{gi:i} = 0; #{gi:i} < #{gi:size}; ++ #{gi:i}) {
+                for (int #{gi :i} = 0; #{gi :i} < #{gi :size}; ++ #{gi :i}) {
                     #{name}.add((#{@content_type}) #{parcel}.readSerializable());
                 }
             }".dedent(12)
@@ -788,8 +788,8 @@ class UUIDListJavaType < JavaType # :nodoc:
 
     def create_from_parcel(parcel, name)
         alloc_index
-        initializer = "#{name} = new java.util.ArrayList<java.util.UUID>(#{gi:length});"
-        setter = "#{name}.add(#{gi:uuid});"
+        initializer = "#{name} = new java.util.ArrayList<java.util.UUID>(#{gi :length});"
+        setter = "#{name}.add(#{gi :uuid});"
         res = ";\n#{read_uuid_list_common(parcel, initializer, setter)} else {\n"
         res << "    #{name} = null;\n}"
         res
@@ -803,15 +803,15 @@ class UUIDListJavaType < JavaType # :nodoc:
     def read_from_parcel(parcel, name)
         alloc_index
 
-        initializer = "final int #{gi:curSize} = #{name}.size();
-        if (#{gi:curSize} > #{gi:length}) {
-            #{name}.subList(#{gi:length}, #{gi:curSize}).clear();
+        initializer = "final int #{gi :curSize} = #{name}.size();
+        if (#{gi :curSize} > #{gi :length}) {
+            #{name}.subList(#{gi :length}, #{gi :curSize}).clear();
         }"
 
-        setter = "if (#{gi:i} < #{gi:curSize}) {
-            #{name}.set(#{gi:i}, #{gi:uuid});
+        setter = "if (#{gi :i} < #{gi :curSize}) {
+            #{name}.set(#{gi :i}, #{gi :uuid});
         } else {
-            #{name}.add(#{gi:uuid});
+            #{name}.add(#{gi :uuid});
         }".indent(4)
 
         read_uuid_list_common(parcel, initializer, setter)
@@ -871,12 +871,12 @@ class SparseBooleanArrayJavaType < JavaType # :nodoc:
         # TODO find way to invoke .readSparseBooleanArrayInternal() instead.
         alloc_index
         "#{name}.clear();
-        final android.os.SparseBooleanArray #{gi:array} = #{parcel}.readSparseBooleanArray();
-        final int #{gi:size} = #{gi:array}.size();
-        for (int #{gi:i} = 0; #{gi:i} < #{gi:size}; ++ #{gi:i}) {
-            final int #{gi:key} = #{gi:array}.keyAt(#{gi:i});
-            final boolean #{gi:value} = #{gi:array}.valueAt(#{gi:i});
-            #{name}.append(#{gi:key}, #{gi:value});
+        final android.os.SparseBooleanArray #{gi :array} = #{parcel}.readSparseBooleanArray();
+        final int #{gi :size} = #{gi :array}.size();
+        for (int #{gi :i} = 0; #{gi :i} < #{gi :size}; ++ #{gi :i}) {
+            final int #{gi :key} = #{gi :array}.keyAt(#{gi :i});
+            final boolean #{gi :value} = #{gi :array}.valueAt(#{gi :i});
+            #{name}.append(#{gi :key}, #{gi :value});
         }".dedent(8)
     end
 

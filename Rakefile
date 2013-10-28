@@ -7,7 +7,7 @@ end
 file "inlined_files.tmp.rb" => FileList["*.erb", "known_parcelables.txt"] do |t|
     File.open(t.name, "w") do |f|
         f.write(<<EOF)
-#!/usr/bin/ruby -w
+#!/usr/bin/ruby
 
 # This is a generated file. DO NOT EDIT.
 # Checkout <https://github.com/kennytm/aidl2> instead.
@@ -76,5 +76,5 @@ end
 task :compress => ["build_aidl2_z.rb"]
 
 CLEAN.include(["*.rl.rb", "*.tmp.rb"])
-CLOBBER.include("build_aidl2.rb")
+CLOBBER.include("build_aidl2.rb", "build_aidl2_z.rb")
 
