@@ -11,9 +11,9 @@ AIDL2Method = Struct.new(:javadoc, :modifiers, :name, :p, :ret, :arguments, :i)
 AIDL2Interface = Struct.new(:javadoc, :modifiers, :name, :p, :generic,
                             :methods, :package, :imports, :tokens)
 
-IMPORT_TYPES = {"o".ord => :import,
-                "f".ord => :parcelable,
-                "s".ord => :serializable}
+IMPORT_TYPES = {?o.ord => :import,
+                ?f.ord => :parcelable,
+                ?s.ord => :serializable}
 
 %%{
     machine parser;
